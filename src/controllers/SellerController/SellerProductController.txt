@@ -1,0 +1,249 @@
+// // Product Management (for sellers)
+// // addProduct, updateProduct, updateProductImages, deactivateProduct, getSellerProducts
+// // Implement duplicate check.
+
+
+// import Product from "../../models/Product.js";
+// import Category from "../../models/Category.js";
+// import logger from "../../services/logger.js";
+
+// const sellerProductControllerLogger = logger.child({
+//   label: "/SellerProductController/SellerProductController.js",
+// });
+
+// // Helper: Validate category and subcategories
+// const validateCategorySubcats = async (categoryName, subcategories) => {
+//   const categoryDoc = await Category.findOne({ name: categoryName });
+//   if (!categoryDoc) return { valid: false, error: "Invalid category" };
+
+//   // Handle missing subcategories array in category
+//   if (!Array.isArray(categoryDoc.subcategories)) {
+//     return {
+//       valid: false,
+//       error: "Category has no valid subcategories",
+//       validSubcats: []
+//     };
+//   }
+
+//   if (subcategories?.length) {
+//     const invalidSubcats = subcategories.filter(
+//       (sc) => !categoryDoc.subcategories.includes(sc)
+//     );
+//     if (invalidSubcats.length > 0) {
+//       return {
+//         valid: false,
+//         error: "Invalid subcategories",
+//         validSubcats: categoryDoc.subcategories,
+//         invalidSubcats
+//       };
+//     }
+//   }
+  
+//   return { valid: true, categoryDoc };
+// };
+
+// // Add product
+// export const addProduct = async (req, res) => {
+//   try {
+//     const { name, description, price, stock, category, subcategories } = req.body;
+
+//     // Validate category and subcategories using helper
+//     const { valid, error, categoryDoc, validSubcats } = await validateCategorySubcats(category, subcategories);
+//     if (!valid) {
+//       const categories = await Category.find({}, "name -_id");
+//       return res.status(400).json({
+//         success: false,
+//         message: error,
+//         ...(error === "Invalid category" && { 
+//           availableCategories: categories.map((c) => c.name) 
+//         }),
+//         ...(error === "Invalid subcategories" && { 
+//           validSubcategories: validSubcats 
+//         })
+//       });
+//     }
+
+//     // Duplicate Check
+//     const existingProduct = await Product.findOne({
+//       seller: req.account.id,
+//       name,
+//       "category._id": categoryDoc._id,
+//     });
+//     if (existingProduct) {
+//       return res.status(409).json({
+//         success: false,
+//         message: `Product '${name}' exists in ${categoryDoc.name}`,
+//         conflict: existingProduct._id,
+//       });
+//     }
+
+//     // Create Product
+//     const product = await Product.create({
+//       seller: req.account.id,
+//       name,
+//       description,
+//       price: parseFloat(price),
+//       stock: parseInt(stock, 10),
+//       category: { _id: categoryDoc._id, name: categoryDoc.name },
+//       subcategories: subcategories || [],
+//       images: req.files?.map((file) => `/uploads/${file.filename}`) || [],
+//     });
+
+//     res.status(201).json({ success: true, product });
+//   } catch (error) {
+//     sellerProductControllerLogger.error(`Add Product Error: ${error.message}`);
+//     res.status(500).json({
+//       success: false,
+//       message: "Product creation failed",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Update Product
+// export const updateProduct = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updates = req.body;
+//     const sellerId = req.account.id;
+
+//     // Category Handling
+//     if (updates.category) {
+//       const { valid, error, categoryDoc } = await validateCategorySubcats(
+//         updates.category,
+//         updates.subcategories
+//       );
+//       if (!valid)
+//         return res.status(400).json({ success: false, message: error });
+//       updates.category = { _id: categoryDoc._id, name: categoryDoc.name };
+//       updates.subcategories = updates.subcategories || [];
+//     }
+
+//     // Numeric Conversions
+//     if (updates.price) updates.price = parseFloat(updates.price);
+//     if (updates.stock) updates.stock = parseInt(updates.stock, 10);
+
+//     // Perform Update
+//     const product = await Product.findOneAndUpdate(
+//       { _id: id, seller: sellerId },
+//       updates,
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Product not found/unauthorized",
+//       });
+//     }
+
+//     res.json({ success: true, product });
+//   } catch (error) {
+//     sellerProductControllerLogger.error(`Update Error: ${error.message}`);
+//     res.status(500).json({
+//       success: false,
+//       message: "Update failed",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Update product images
+// export const updateProductImages = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     if (!req.files?.length) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "No images provided",
+//       });
+//     }
+
+//     const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+//     const product = await Product.findByIdAndUpdate(
+//       id,
+//       { $push: { images: { $each: newImages } } },
+//       { new: true }
+//     );
+
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Product not found",
+//       });
+//     }
+
+//     res.json({ success: true, images: product.images });
+//   } catch (error) {
+//     sellerProductControllerLogger.error(`Update images error: ${error.message}`);
+//     res.status(500).json({
+//       success: false,
+//       message: "Image update failed",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Deactivate product
+// export const deactivateProduct = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const product = await Product.findOneAndUpdate(
+//       { _id: id, seller: req.account.id },
+//       { isActive: false },
+//       { new: true }
+//     );
+
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Product not found",
+//       });
+//     }
+
+//     res.json({ success: true, message: "Product deactivated" });
+//   } catch (error) {
+//     sellerProductControllerLogger.error(`Deactivation error: ${error.message}`);
+//     res.status(500).json({
+//       success: false,
+//       message: "Deactivation failed",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Get seller products
+// export const getSellerProducts = async (req, res) => {
+//   try {
+//     const { status = "active" } = req.query;
+//     const filter = {
+//       seller: req.account.id,
+//       isActive: status === "active",
+//     };
+
+//     sellerProductControllerLogger.info(
+//       `Fetching products for seller: ${req.account.id}`,
+//       { status }
+//     );
+
+//     const products = await Product.find(filter)
+//       .populate("category", "name")
+//       .sort("-createdAt");
+
+//     sellerProductControllerLogger.info(
+//       `Fetched ${products.length} products for seller: ${req.account.id}`
+//     );
+
+//     res.json({ success: true, products });
+//   } catch (error) {
+//     sellerProductControllerLogger.error(`Get Products Error: ${error.message}`, {
+//       stack: error.stack,
+//       sellerId: req.account.id,
+//     });
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch products",
+//     });
+//   }
+// };
