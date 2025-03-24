@@ -6,6 +6,7 @@ import Admin from '../../models/Admin.js';
 import generateToken from '../../utils/generateToken.js';
 import { generateUniqueLicenseID } from '../../services/idGenerator.js';
 import logger from "../../services/logger.js";
+import { sendEmail } from '../../services/emailService.js';
 
 const authControllerLogger = logger.child({ label: '/controllers/AuthController/AuthController.js' });
 
@@ -64,15 +65,29 @@ export const userLogin = async (req, res) => {
         return res.status(403).json({ message: 'User is disabled' });
       }
 
+      const token = generateToken(user._id, user.role);
       authControllerLogger.info(`User logged in successfully: ${user._id}`);
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Login Notification',
+        text: `Hi ${user.name}, you logged in to flipONE at ${new Date().toLocaleString()}.`,
+        template: 'LoginNotification', 
+        templateData: {
+          name: user.name,
+          loginTime: new Date().toLocaleString()
+        },  
+      }).catch((error) => {
+          logger.error(`Failed to send login email to ${user.email}: ${error.message}`);
+        });
 
       res.json({
         success: true,
+        token,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
-          token: generateToken(user._id, user.role),
         }
       });
     } else {

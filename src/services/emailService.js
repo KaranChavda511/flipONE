@@ -1,18 +1,33 @@
 // src/utils/emailService.js
 import nodemailer from 'nodemailer';
+import ejs from 'ejs';
+import fs from 'fs';
+import path from 'path';
 import logger from '../services/logger.js';
 
-// Create a transporter using Gmail SMTP
+
+
+// if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+//   throw new Error('Gmail credentials missing in environment variables');
+// }
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can also use host and port; service simplifies Gmail
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, 
+  // service: 'gmail',
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false, //only for local testing
+  },
 });
 
-// Verify the transporter configuration (optional, but recommended)
-transporter.verify((error, success) => {
+
+
+transporter.verify((error) => {
   if (error) {
     logger.error(`Email transporter error: ${error.message}`);
   } else {
@@ -20,28 +35,56 @@ transporter.verify((error, success) => {
   }
 });
 
-/**
- * sendEmail - sends an email using the configured transporter.
- * @param {Object} options - Options for the email.
- * @param {string} options.to - Recipient email address.
- * @param {string} options.subject - Email subject.
- * @param {string} options.text - Plain text body.
- * @param {string} [options.html] - HTML body (optional).
- */
+
+
+const renderTemplate = async (templateName, data) => {
+  try {
+    const templatePath = path.join(
+      process.cwd(),
+      'src', 
+      'views',
+      'emails',
+      `${templateName}.ejs`
+    );
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    return ejs.render(template, data);
+  } catch (error) {
+    logger.error(`Template Rendering Error (${templateName}):`, error);
+    throw new Error('Failed to render email template');
+  }
+};
+
+
+
 export const sendEmail = async (options) => {
   try {
+
+    let html;
+    if (options.template) {
+      html = await renderTemplate(options.template, options.templateData);
+    }
+
     const mailOptions = {
       from: `"flipONE Support" <${process.env.GMAIL_USER}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
-      html: options.html,
+      html,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    logger.info(`Email sent: ${info.messageId}`);
+    logger.info(`Email sent to ${options.to}`, {
+      messageId: info.messageId,
+      subject: options.subject
+    });
+  
+    return true;
+
   } catch (error) {
-    logger.error(`Failed to send email: ${error.message}`);
-    throw error;
+    logger.error(`Email Failed to ${options.to}`, {
+      error: error.message,
+      subject: options.subject
+    });
+    throw error; 
   }
 };

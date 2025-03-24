@@ -1,15 +1,15 @@
+import 'dotenv/config';  
 import express from "express";
 import path from "path";
-import dotenv from "dotenv";
 import morgan from "morgan";
 import connectDB from "./src/config/db.js";
 import centralizedRoute from "./src/routes/CentralizedRoute.js";
 import logger from "./src/services/logger.js";
 import { errorHandler, notFound } from "./src/middlewares/ErrorMiddleware.js";
 
-dotenv.config();
-
 const app = express();
+// app.set('view engine', 'ejs');
+
 
 //  Set static folder
 const __dirname = path.resolve();
