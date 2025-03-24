@@ -185,16 +185,31 @@ export const sellerLogin = async (req, res) => {
         return res.status(403).json({ message: 'Seller is disabled' });
       }
 
+      const token = generateToken(seller._id, seller.role);
       authControllerLogger.info(`Seller logged in successfully: ${seller._id}`);
+
+      await sendEmail({
+        to: seller.email,
+        subject: 'Login Notification - Seller Account',
+        text: `Hi ${seller.businessName || seller.name}, you logged in to flipONE Seller Portal at ${new Date().toLocaleString()}.`,
+        template: 'LoginNotification',
+        templateData: {
+          name: seller.businessName || seller.name,
+          loginTime: new Date().toLocaleString()
+        },
+      }).catch((error) => {
+        logger.error(`Failed to send seller login email to ${seller.email}: ${error.message}`);
+      });
+
 
       res.json({
         success: true,
+        token,
         seller: {
           id: seller._id,
           name: seller.name,
           email: seller.email,
           licenseID: seller.licenseID,
-          token: generateToken(seller._id, seller.role),
         }
       });
     } else {
