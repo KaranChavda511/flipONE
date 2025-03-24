@@ -27,11 +27,11 @@ router.use(protect, adminProtect);
 
 // User Management
 router.get('/allUsers', getAllUsers);
-router.patch('/users/:id/toggle-status', toggleUserStatus);
+router.patch('/users/action-status/:id', toggleUserStatus);
 
 // Seller Management
 router.get('/allSellers', getAllSellers);
-router.patch('/sellers/:id/toggle-status', toggleSellerStatus);
+router.patch('/sellers/action-status/:id', toggleSellerStatus);
 
 // Category Management
 router.post('/add-categories', validator("categorySchemas.create"), createCategory);
@@ -46,8 +46,6 @@ router.delete(
   '/categories/:id',
   deleteCategory
 );
-
-
 
 // Analytics
 router.get('/analytics/sales', getSalesData);
