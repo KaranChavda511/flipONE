@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Seller Login Alert</title>
+  <style>
+    /* Use the same styles as LoginNotification.ejs */
+    body { font-family: Arial, sans-serif; background-color: #f6f6f6; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { color: #28a745; } /* Different color for seller emails */
+    /* ... rest of the styles from LoginNotification.ejs ... */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hello <%= name %>,</h2>
+    <p>
+      A login was detected on your <strong>flipONE Seller Account</strong> at 
+      <strong><%= loginTime %></strong>.
+    </p>
+    <p>
+      If this wasn't you, please contact our seller support team immediately:
+    </p>
+    <a class="button" href="https://flipone.com/seller-support">Seller Support</a>
+    <div class="footer">
+      <p>Keep your seller credentials secure!</p>
+      <p>flipONE Seller Team</p>
+    </div>
+  </div>
+</body>
+</html>

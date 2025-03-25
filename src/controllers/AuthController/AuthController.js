@@ -6,7 +6,9 @@ import Admin from '../../models/Admin.js';
 import generateToken from '../../utils/generateToken.js';
 import { generateUniqueLicenseID } from '../../services/idGenerator.js';
 import logger from "../../services/logger.js";
-import { sendEmail } from '../../services/emailService.js';
+// import { sendEmail } from '../../services/emailService.js';
+import { sendUserLoginAlert, sendSellerLoginAlert } from '../../services/emailService.js';
+
 
 const authControllerLogger = logger.child({ label: '/controllers/AuthController/AuthController.js' });
 
@@ -68,18 +70,23 @@ export const userLogin = async (req, res) => {
       const token = generateToken(user._id, user.role);
       authControllerLogger.info(`User logged in successfully: ${user._id}`);
 
-      await sendEmail({
-        to: user.email,
-        subject: 'Login Notification',
-        text: `Hi ${user.name}, you logged in to flipONE at ${new Date().toLocaleString()}.`,
-        template: 'LoginNotification', 
-        templateData: {
-          name: user.name,
-          loginTime: new Date().toLocaleString()
-        },  
-      }).catch((error) => {
-          logger.error(`Failed to send login email to ${user.email}: ${error.message}`);
-        });
+      // await sendEmail({
+      //   to: user.email,
+      //   subject: 'Login Notification',
+      //   text: `Hi ${user.name}, you logged in to flipONE at ${new Date().toLocaleString()}.`,
+      //   template: 'LoginNotification', 
+      //   templateData: {
+      //     name: user.name,
+      //     loginTime: new Date().toLocaleString()
+      //   },  
+      // }).catch((error) => {
+      //     logger.error(`Failed to send login email to ${user.email}: ${error.message}`);
+      //   });
+
+       // Send login email
+    sendUserLoginAlert(user).catch((err) => {
+      logger.error(`User email failed: ${err.message}`);
+    });
 
       res.json({
         success: true,
@@ -188,18 +195,23 @@ export const sellerLogin = async (req, res) => {
       const token = generateToken(seller._id, seller.role);
       authControllerLogger.info(`Seller logged in successfully: ${seller._id}`);
 
-      await sendEmail({
-        to: seller.email,
-        subject: 'Login Notification - Seller Account',
-        text: `Hi ${seller.businessName || seller.name}, you logged in to flipONE Seller Portal at ${new Date().toLocaleString()}.`,
-        template: 'LoginNotification',
-        templateData: {
-          name: seller.businessName || seller.name,
-          loginTime: new Date().toLocaleString()
-        },
-      }).catch((error) => {
-        logger.error(`Failed to send seller login email to ${seller.email}: ${error.message}`);
-      });
+      // await sendEmail({
+      //   to: seller.email,
+      //   subject: 'Login Notification - Seller Account',
+      //   text: `Hi ${seller.businessName || seller.name}, you logged in to flipONE Seller Portal at ${new Date().toLocaleString()}.`,
+      //   template: 'LoginNotification',
+      //   templateData: {
+      //     name: seller.businessName || seller.name,
+      //     loginTime: new Date().toLocaleString()
+      //   },
+      // }).catch((error) => {
+      //   logger.error(`Failed to send seller login email to ${seller.email}: ${error.message}`);
+      // });
+
+// Send seller-specific alert
+    sendSellerLoginAlert(seller).catch((err) => {
+      logger.error(`Seller email failed: ${err.message}`);
+    });
 
 
       res.json({

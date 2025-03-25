@@ -13,7 +13,7 @@ import {validator} from '../../middlewares/ValidationMiddleware.js'
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
+
 router.use(protect, userProtect);
 
 // Define routes
@@ -25,7 +25,7 @@ router.patch('/profile/picture',
 );
 
 
-// Global error handler (must be the last middleware)
+
 router.use(errorHandler);
 
 export default router;
